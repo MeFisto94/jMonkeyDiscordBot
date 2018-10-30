@@ -13,15 +13,14 @@ import net.dv8tion.jda.core.entities.Game;
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 public class Main {
-    List<Module> moduleList;
     public static final boolean javadocAsCode = false;
     public static final String lineDelimit = System.getProperty("line.separator");
     public static final boolean useEmbeds = true; // Discord says we shall support a text-only fallback
+    public static final boolean Dev_Powersave = false;
     protected ConcurrentHashMap<String, GitRepo> repositories;
     JDA jda;
     String token;
@@ -52,7 +51,6 @@ public class Main {
         repositories.put("engine", repoEngine);
 
         // @TODO: We don't need/want to specify the branches here manually but want them to be extracted of the repo
-        // @TODO: FIXME: Fields still don't work
         GitRepo repoSdk = new GitRepo("sdk", "https://github.com/jMonkeyEngine/sdk", Stream.of("master"));
         repoSdk.tickUpdate();
         repositories.put("sdk", repoSdk);

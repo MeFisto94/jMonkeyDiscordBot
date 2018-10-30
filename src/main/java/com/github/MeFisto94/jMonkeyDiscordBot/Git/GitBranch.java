@@ -2,6 +2,7 @@ package com.github.MeFisto94.jMonkeyDiscordBot.Git;
 
 import com.github.MeFisto94.jMonkeyDiscordBot.BranchOrCommit;
 import com.github.MeFisto94.jMonkeyDiscordBot.JavaClass;
+import com.github.MeFisto94.jMonkeyDiscordBot.Main;
 import com.github.MeFisto94.jMonkeyDiscordBot.Module;
 
 import javax.annotation.Nonnull;
@@ -27,7 +28,7 @@ public class GitBranch {
                         .filter(f -> (!repo.getName().equals("engine") && !repo.getName().equals("sdk")) || f.getName().startsWith("jme3-"))
                         .map(f -> new Module(repo.getFolder(), f, boc))
                         // used to save power during dev.
-                        .filter(f -> f.getName().equals("jme3-core"))
+                        .filter(f -> !Main.Dev_Powersave || f.getName().equals("jme3-core"))
                         .collect(Collectors.toList());
 
         moduleList.parallelStream().forEach(Module::parseModule);

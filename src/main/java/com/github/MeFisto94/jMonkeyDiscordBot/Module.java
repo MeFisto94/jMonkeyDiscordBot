@@ -49,7 +49,7 @@ public class Module {
                 .filter(f -> f.toFile().isFile())
                 .filter(f -> !f.toString().contains("checkers"))
                 .filter(f -> f.getFileName().toString().endsWith(".java"))
-                .filter(f -> f.getFileName().toString().equals("Vector3f.java"))
+                .filter(f -> !Main.Dev_Powersave || f.getFileName().toString().equals("Vector3f.java"))
                 //.limit(10)
                 .forEach(f -> {
                     if (f.getFileName().toString().endsWith(".java")) {
