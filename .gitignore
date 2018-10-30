@@ -1,0 +1,6 @@
+build/
+out/
+repositories/
+token.txt
+.gradle/
+.idea/
