@@ -61,7 +61,7 @@ public class SearchCommand extends AbstractLookupCommand {
             if (code == null) {
                 builder.addField("Code Exempt", "No Code Found!", false);
             } else {
-                builder.addField("Code Exempt", "```java\n" + code + "\n``` [maybe cutted]", false);
+                builder.addField("Code Exempt", "```java\n" + code + "\n``` [maybe cut]", false);
             }
 
             event.reply(builder.build());
