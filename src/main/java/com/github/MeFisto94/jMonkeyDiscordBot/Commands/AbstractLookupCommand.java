@@ -17,6 +17,7 @@ public abstract class AbstractLookupCommand extends Command {
 
     public AbstractLookupCommand(Main main) {
         this.main = main;
+        this.guildOnly = false;
     }
 
     @Override
