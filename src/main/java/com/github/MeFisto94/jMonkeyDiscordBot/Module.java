@@ -49,6 +49,7 @@ public class Module {
                 .filter(f -> f.toFile().isFile())
                 .filter(f -> !f.toString().contains("checkers"))
                 .filter(f -> f.getFileName().toString().endsWith(".java"))
+                .filter(f -> !f.getFileName().toString().equalsIgnoreCase("package-info.java"))
                 .filter(f -> !Main.Dev_Powersave || f.getFileName().toString().equals("Vector3f.java"))
                 //.limit(10)
                 .forEach(f -> {
@@ -58,7 +59,7 @@ public class Module {
                     }
                 });
 
-            javaClasses.stream().forEach(ProcessableFile::processFile);
+            javaClasses.forEach(ProcessableFile::processFile);
 
             /*javaClasses.forEach(jc -> {
                 System.out.println(jc.getFile().getName());

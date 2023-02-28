@@ -26,7 +26,6 @@ public class JavaClass extends AbstractProcessableFile {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JavaClass.class);
 
-
     public JavaClass(Module parent, File file) {
         this.parent = parent;
         this.file = file;
@@ -38,9 +37,17 @@ public class JavaClass extends AbstractProcessableFile {
     public void process() {
         try {
             // TODO: cache JavaParser somewhere.
-            compilationUnit = new JavaParser().parse(file).getResult().orElseThrow(() -> new IllegalStateException("Error when parsing " + file));
-            parseMethods();
-            parseFields();
+            compilationUnit = new JavaParser().parse(file).getResult() //
+                    .orElseThrow(() -> new IllegalStateException("Error when parsing " + file));
+
+            // TODO: In the future, we may want to parse more than just the primary type
+            var primaryTypeOpt = compilationUnit.getPrimaryType();
+            if (primaryTypeOpt.isEmpty()) {
+                LOGGER.warn("Could not get the primary type of {}", file.getName());
+            } else {
+                parseMethods(primaryTypeOpt.get());
+                parseFields(primaryTypeOpt.get());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -130,19 +137,13 @@ public class JavaClass extends AbstractProcessableFile {
     }
 
     // METHODS
-    protected void parseMethods() {
+    protected void parseMethods(TypeDeclaration<?> type) {
         // @TODO: There are caveats here: What about inner classes? These are other types than the Primary Type
         // @TODO: Would be a visitor (think SceneGraphVisitor) be an appropriate solution?
-        var memberList = compilationUnit.getPrimaryType().map(TypeDeclaration::getMembers);
-
-        if (memberList.isEmpty()) {
-            LOGGER.warn("Error trying to get the primary type of {}", file.getName());
-        } else {
-            memberList.get().stream()
-                    .filter(BodyDeclaration::isMethodDeclaration)
-                    .map(b -> (MethodDeclaration)b)
-                    .forEach(this::addMethod);
-        }
+        type.getMembers().stream()
+                .filter(BodyDeclaration::isMethodDeclaration)
+                .map(b -> (MethodDeclaration)b)
+                .forEach(this::addMethod);
     }
 
     protected void addMethod(MethodDeclaration m) {
@@ -154,33 +155,28 @@ public class JavaClass extends AbstractProcessableFile {
     }
 
     // FIELDS
-    protected void parseFields() {
+    protected void parseFields(TypeDeclaration<?> type) {
         // @TODO: There are caveats here: What about inner classes? These are other types than the Primary Type
         // @TODO: Would be a visitor (think SceneGraphVisitor) be an appropriate solution?
-        var memberList = compilationUnit.getPrimaryType().map(TypeDeclaration::getMembers);
-        if (memberList.isEmpty()) {
-            LOGGER.warn("Error trying to get the primary type of {}", file.getName());
-        } else {
-            memberList.get().stream()
+            type.getMembers().stream()
                     .filter(BodyDeclaration::isFieldDeclaration)
                     .map(b -> (FieldDeclaration) b)
                     .forEach(this::addField);
-        }
     }
 
     protected void addField(FieldDeclaration f) {
-        if (f.getVariables().size() > 1) {
-            System.err.println("FIXME: Contains more than 1 Variable!");
-        }
+        // "int foo, bar;" is an example of two variables in one field.
+        f.getVariables().forEach(variable -> {
+            String name = variable.getNameAsString();
 
-        String name = f.getVariables().get(0).getNameAsString();
+            if (fieldMap.containsKey(name)) {
+                LOGGER.error("BBBBBBB####################");
+                fieldMap.get(name).addDeclaration(f);
+            } else {
+                fieldMap.put(name, new Field(this, f));
+            }
+        });
 
-        if (fieldMap.containsKey(name)) {
-            System.err.println("BBBBBBB####################");
-            fieldMap.get(name).addDeclaration(f);
-        } else {
-            fieldMap.put(name, new Field(this, f));
-        }
     }
 
     public String toYAML() {
