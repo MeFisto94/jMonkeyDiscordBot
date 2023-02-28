@@ -1,9 +1,8 @@
 package com.github.MeFisto94.jMonkeyDiscordBot.Commands;
 
 import com.github.MeFisto94.jMonkeyDiscordBot.*;
-import com.github.javaparser.ast.body.FieldDeclaration;
 import com.jagrosh.jdautilities.command.CommandEvent;
-import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.api.EmbedBuilder;
 
 public class SearchCommand extends AbstractLookupCommand {
     Main main;

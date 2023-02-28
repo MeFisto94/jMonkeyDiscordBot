@@ -4,6 +4,8 @@ import com.github.MeFisto94.jMonkeyDiscordBot.BranchOrCommit;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.BranchTrackingStatus;
 import org.eclipse.jgit.lib.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +21,8 @@ public class RepositorySynchronizer {
     boolean needsUpdate = false;
     String name;
     String URI;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RepositorySynchronizer.class);
 
     public RepositorySynchronizer(String name, String URI) throws IllegalStateException {
         this.name = name;
@@ -99,7 +103,8 @@ public class RepositorySynchronizer {
                     BranchTrackingStatus tracking = BranchTrackingStatus.of(repository, name);
 
                     if (tracking == null) {
-                        System.err.println("Error in checkNeedsUpdate()");
+                        // They may just not have a local branch yet... Only happens for branches not part anyway.
+                        LOGGER.warn("Error in checkNeedsUpdate() for " + name);
                         return false;
                     } else {
                         /*System.out.println(tracking.getAheadCount());

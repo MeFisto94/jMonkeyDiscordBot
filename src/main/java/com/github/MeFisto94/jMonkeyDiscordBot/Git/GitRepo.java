@@ -1,6 +1,8 @@
 package com.github.MeFisto94.jMonkeyDiscordBot.Git;
 
 import com.github.MeFisto94.jMonkeyDiscordBot.BranchOrCommit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
@@ -16,6 +18,8 @@ public class GitRepo {
     private ConcurrentHashMap<String, GitBranch> branchList;
     private File folder;
     private String name;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitRepo.class);
 
     public GitRepo(String repoName, String URI, Stream<String> branches) {
         this.name = repoName;
@@ -40,14 +44,14 @@ public class GitRepo {
             do {
                 System.out.println(branchName);
                 lock = sync.checkoutAndLock(boc);
-                if (!lock.isPresent()) {
+                if (lock.isEmpty()) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException intex) {
                         Thread.currentThread().interrupt();
                     }
                 }
-            } while (!lock.isPresent());
+            } while (lock.isEmpty());
 
             GitBranch br = new GitBranch(this, boc);
             lock.get().releaseLock();
@@ -66,6 +70,7 @@ public class GitRepo {
     public void tickUpdate() {
         try {
             if (sync.needsCloning()) {
+                LOGGER.debug("Cloning {}", name);
                 sync.cloneRepository().get();
             }
         } catch (InterruptedException ie) {

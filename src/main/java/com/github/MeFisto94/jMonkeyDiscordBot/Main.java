@@ -4,11 +4,13 @@ import com.github.MeFisto94.jMonkeyDiscordBot.Commands.JavadocCommand;
 import com.github.MeFisto94.jMonkeyDiscordBot.Commands.SearchCommand;
 import com.github.MeFisto94.jMonkeyDiscordBot.Git.GitRepo;
 import com.jagrosh.jdautilities.command.CommandClientBuilder;
-import net.dv8tion.jda.core.AccountType;
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.JDABuilder;
-import net.dv8tion.jda.core.OnlineStatus;
-import net.dv8tion.jda.core.entities.Game;
+import net.dv8tion.jda.api.AccountType;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
@@ -25,6 +27,9 @@ public class Main {
     JDA jda;
     String token;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
+
     public static void main(String[] args) {
         Main main = new Main();
         main.main();
@@ -33,23 +38,28 @@ public class Main {
     }
 
     public void main() {
+        LOGGER.info("jMonkeyDiscordBot booting up");
         File tokenFile = new File("token.txt");
         if (tokenFile.exists()) {
             try {
+                LOGGER.info("Taking Discord Token from token.txt");
                 token = Files.readAllLines(tokenFile.toPath()).get(0);
             } catch (Exception e) {
                 System.out.println("Error when reading token file!");
                 e.printStackTrace();
             }
         } else {
+            LOGGER.info("Taking Discord Token from environment variable BOT_TOKEN");
             token = System.getenv("BOT_TOKEN");
         }
 
+        LOGGER.info("Fetching repositories for code assistance: Engine");
         repositories = new ConcurrentHashMap<>();
-        GitRepo repoEngine = new GitRepo("engine", "https://github.com/jMonkeyEngine/jmonkeyengine", Stream.of("master", "v3.1"));
+        GitRepo repoEngine = new GitRepo("engine", "https://github.com/jMonkeyEngine/jmonkeyengine", Stream.of("master", "v3.5.2-stable"));
         repoEngine.tickUpdate();
         repositories.put("engine", repoEngine);
 
+        LOGGER.info("Fetching repositories for code assistance: SDK");
         // @TODO: We don't need/want to specify the branches here manually but want them to be extracted of the repo
         GitRepo repoSdk = new GitRepo("sdk", "https://github.com/jMonkeyEngine/sdk", Stream.of("master"));
         repoSdk.tickUpdate();
@@ -69,6 +79,7 @@ public class Main {
         //System.out.println(m.getContent(0));
         //System.out.println(clazz.getContentFromTo(203, 212));
 
+        LOGGER.info("Connecting to Discord");
         // @TODO: maybe add a new field command so we don't have the separation of javadoc/code for fields.
         initDiscordAPI();
     }
@@ -84,13 +95,12 @@ public class Main {
             .addCommand(new SearchCommand(this));
 
         try {
-            jda = new JDABuilder(AccountType.BOT)
-                    .setToken(token)
+            jda = JDABuilder.createDefault(token)
                     .setStatus(OnlineStatus.ONLINE)
-                    .setGame(Game.playing("jMonkeyEngine"))
+                    .setActivity(Activity.playing("jMonkeyEngine"))
                     // The EventWaiter is used to track down replies to our questions. But this event waiter needs to be an event listener then
                     //.addEventListener(new EventWaiter()) // DO we really need this?
-                    .addEventListener(client.build())
+                    .addEventListeners(client.build())
                     .build().awaitReady();
         } catch (LoginException login) {
             login.printStackTrace();

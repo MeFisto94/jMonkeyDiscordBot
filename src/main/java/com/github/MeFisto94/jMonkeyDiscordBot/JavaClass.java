@@ -6,6 +6,8 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.printer.YamlPrinter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -22,6 +24,8 @@ public class JavaClass extends AbstractProcessableFile {
     HashMap<String, Field> fieldMap;
     Module parent;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(JavaClass.class);
+
 
     public JavaClass(Module parent, File file) {
         this.parent = parent;
@@ -33,11 +37,12 @@ public class JavaClass extends AbstractProcessableFile {
     @Override
     public void process() {
         try {
-            compilationUnit = JavaParser.parse(file);
+            // TODO: cache JavaParser somewhere.
+            compilationUnit = new JavaParser().parse(file).getResult().orElseThrow(() -> new IllegalStateException("Error when parsing " + file));
             parseMethods();
             parseFields();
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -90,7 +95,7 @@ public class JavaClass extends AbstractProcessableFile {
         if (compilationUnit.getPrimaryType().get() instanceof ClassOrInterfaceDeclaration) {
             ClassOrInterfaceDeclaration cod = (ClassOrInterfaceDeclaration)compilationUnit.getPrimaryType().get();
             if (!cod.isInterface()) {
-                return cod.getModifiers().contains(Modifier.ABSTRACT);
+                return cod.getModifiers().contains(Modifier.abstractModifier());
             }
         }
 
@@ -101,7 +106,7 @@ public class JavaClass extends AbstractProcessableFile {
         if (compilationUnit.getPrimaryType().get() instanceof ClassOrInterfaceDeclaration) {
             ClassOrInterfaceDeclaration cod = (ClassOrInterfaceDeclaration)compilationUnit.getPrimaryType().get();
             if (!cod.isInterface()) {
-                return !cod.getModifiers().contains(Modifier.ABSTRACT);
+                return !cod.getModifiers().contains(Modifier.abstractModifier());
             }
         }
 
@@ -128,11 +133,16 @@ public class JavaClass extends AbstractProcessableFile {
     protected void parseMethods() {
         // @TODO: There are caveats here: What about inner classes? These are other types than the Primary Type
         // @TODO: Would be a visitor (think SceneGraphVisitor) be an appropriate solution?
-        NodeList<BodyDeclaration<?>> memberList = compilationUnit.getPrimaryType().get().getMembers();
-        memberList.stream()
-            .filter(b -> b.isMethodDeclaration())
-            .map(b -> (MethodDeclaration)b)
-            .forEach(m -> addMethod(m));
+        var memberList = compilationUnit.getPrimaryType().map(TypeDeclaration::getMembers);
+
+        if (memberList.isEmpty()) {
+            LOGGER.warn("Error trying to get the primary type of {}", file.getName());
+        } else {
+            memberList.get().stream()
+                    .filter(BodyDeclaration::isMethodDeclaration)
+                    .map(b -> (MethodDeclaration)b)
+                    .forEach(this::addMethod);
+        }
     }
 
     protected void addMethod(MethodDeclaration m) {
@@ -147,11 +157,15 @@ public class JavaClass extends AbstractProcessableFile {
     protected void parseFields() {
         // @TODO: There are caveats here: What about inner classes? These are other types than the Primary Type
         // @TODO: Would be a visitor (think SceneGraphVisitor) be an appropriate solution?
-        NodeList<BodyDeclaration<?>> memberList = compilationUnit.getPrimaryType().get().getMembers();
-        memberList.stream()
-                .filter(b -> b.isFieldDeclaration())
-                .map(b -> (FieldDeclaration)b)
-                .forEach(f -> addField(f));
+        var memberList = compilationUnit.getPrimaryType().map(TypeDeclaration::getMembers);
+        if (memberList.isEmpty()) {
+            LOGGER.warn("Error trying to get the primary type of {}", file.getName());
+        } else {
+            memberList.get().stream()
+                    .filter(BodyDeclaration::isFieldDeclaration)
+                    .map(b -> (FieldDeclaration) b)
+                    .forEach(this::addField);
+        }
     }
 
     protected void addField(FieldDeclaration f) {

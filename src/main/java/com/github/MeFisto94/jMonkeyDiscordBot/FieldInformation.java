@@ -41,7 +41,7 @@ public class FieldInformation {
     public String extractSignature() {
         // @TODO: What if variables.count > 1?
         //@TODO: Where does that "Optional[]" come from with the modifiers.
-        return decl.getModifiers().stream().map(Modifier::asString).reduce(String::join) +
+        return decl.getModifiers().stream().map(Modifier::getKeyword).map(Modifier.Keyword::asString).reduce(String::join) +
         " " + decl.getVariable(0).getType().asString() + " " +
         decl.getVariable(0).getName().asString() + ";";
     }

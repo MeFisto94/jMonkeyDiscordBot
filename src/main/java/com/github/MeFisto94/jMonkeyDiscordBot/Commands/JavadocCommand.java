@@ -2,7 +2,7 @@ package com.github.MeFisto94.jMonkeyDiscordBot.Commands;
 
 import com.github.MeFisto94.jMonkeyDiscordBot.*;
 import com.jagrosh.jdautilities.command.CommandEvent;
-import net.dv8tion.jda.core.EmbedBuilder;
+import net.dv8tion.jda.api.EmbedBuilder;
 
 public class JavadocCommand extends AbstractLookupCommand {
 
