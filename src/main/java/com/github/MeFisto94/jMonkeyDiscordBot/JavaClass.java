@@ -1,9 +1,9 @@
 package com.github.MeFisto94.jMonkeyDiscordBot;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
-import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.printer.YamlPrinter;
 import org.slf4j.Logger;
@@ -18,13 +18,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class JavaClass extends AbstractProcessableFile {
-    File file;
-    CompilationUnit compilationUnit;
-    HashMap<String, Method> methodMap;
-    HashMap<String, Field> fieldMap;
-    Module parent;
-
     private static final Logger LOGGER = LoggerFactory.getLogger(JavaClass.class);
+    private final Module parent;
+    private final File file;
+    private final HashMap<String, Method> methodMap;
+    private final HashMap<String, Field> fieldMap;
+    CompilationUnit compilationUnit;
 
     public JavaClass(Module parent, File file) {
         this.parent = parent;
@@ -36,9 +35,7 @@ public class JavaClass extends AbstractProcessableFile {
     @Override
     public void process() {
         try {
-            // TODO: cache JavaParser somewhere.
-            compilationUnit = new JavaParser().parse(file).getResult() //
-                    .orElseThrow(() -> new IllegalStateException("Error when parsing " + file));
+            compilationUnit = StaticJavaParser.parse(file);
 
             // TODO: In the future, we may want to parse more than just the primary type
             var primaryTypeOpt = compilationUnit.getPrimaryType();
@@ -74,33 +71,36 @@ public class JavaClass extends AbstractProcessableFile {
         return compilationUnit.getPackageDeclaration().get().getName().asString();
     }
 
-    public String getTypeName() {
-        return compilationUnit.getPrimaryTypeName().orElse(null);
+    public String getTypeName(TypeDeclaration<?> type) {
+        return type.getNameAsString();
     }
 
-    public boolean isEnum() {
-        return compilationUnit.getPrimaryType().get() instanceof EnumDeclaration;
+    public String getTypeNameOrThrow() {
+        return getTypeName(compilationUnit.getPrimaryType().orElseThrow());
     }
 
-    public boolean isInterface() {
-        if (compilationUnit.getPrimaryType().get() instanceof ClassOrInterfaceDeclaration) {
-            return ((ClassOrInterfaceDeclaration)compilationUnit.getPrimaryType().get()).isInterface();
+    public boolean isEnum(TypeDeclaration<?> type) {
+        return type instanceof EnumDeclaration;
+    }
+
+    public boolean isInterface(TypeDeclaration<?> type) {
+        if (type instanceof ClassOrInterfaceDeclaration cod) {
+            return cod.isInterface();
         }
 
         return false;
     }
 
-    public boolean isAnnotation() {
-        if (compilationUnit.getPrimaryType().get() instanceof AnnotationDeclaration) {
-            return ((AnnotationDeclaration)compilationUnit.getPrimaryType().get()).isAnnotationDeclaration();
+    public boolean isAnnotation(TypeDeclaration<?> type) {
+        if (type instanceof AnnotationDeclaration aod) {
+            return aod.isAnnotationDeclaration();
         }
 
         return false;
     }
 
-    public boolean isAbstractClass() {
-        if (compilationUnit.getPrimaryType().get() instanceof ClassOrInterfaceDeclaration) {
-            ClassOrInterfaceDeclaration cod = (ClassOrInterfaceDeclaration)compilationUnit.getPrimaryType().get();
+    public boolean isAbstractClass(TypeDeclaration<?> type) {
+        if (type instanceof ClassOrInterfaceDeclaration cod) {
             if (!cod.isInterface()) {
                 return cod.getModifiers().contains(Modifier.abstractModifier());
             }
@@ -109,9 +109,8 @@ public class JavaClass extends AbstractProcessableFile {
         return false;
     }
 
-    public boolean isRegularClass() {
-        if (compilationUnit.getPrimaryType().get() instanceof ClassOrInterfaceDeclaration) {
-            ClassOrInterfaceDeclaration cod = (ClassOrInterfaceDeclaration)compilationUnit.getPrimaryType().get();
+    public boolean isRegularClass(TypeDeclaration<?> type) {
+        if (type instanceof ClassOrInterfaceDeclaration cod) {
             if (!cod.isInterface()) {
                 return !cod.getModifiers().contains(Modifier.abstractModifier());
             }
@@ -120,16 +119,16 @@ public class JavaClass extends AbstractProcessableFile {
         return false;
     }
 
-    public String typeToString() {
-        if (isEnum()) {
+    public String typeToString(TypeDeclaration<?> type) {
+        if (isEnum(type)) {
             return "enum";
-        } else if (isInterface()) {
+        } else if (isInterface(type)) {
             return "interface";
-        } else if (isRegularClass()) {
+        } else if (isRegularClass(type)) {
             return "class";
-        } else if (isAnnotation()) {
+        } else if (isAnnotation(type)) {
             return "annotation";
-        } else if (isAbstractClass()) {
+        } else if (isAbstractClass(type)) {
             return "abstract class";
         } else {
             return "unknown";
@@ -206,8 +205,7 @@ public class JavaClass extends AbstractProcessableFile {
         return fieldMap;
     }
 
-    public @Nullable
-    Method findMethodByName(@Nonnull String methodName) {
+    public @Nullable Method findMethodByName(@Nonnull String methodName) {
         return getMethodMap().get(methodName);
     }
 

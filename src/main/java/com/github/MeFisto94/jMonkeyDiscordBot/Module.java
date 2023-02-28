@@ -80,7 +80,7 @@ public class Module {
                 jc.getFieldMap().values().forEach(f -> System.out.println(f.getDeclarationAsString(0)));
             });*/
 
-            javaClasses.forEach(jc -> classNameMap.put(jc.getTypeName(), jc));
+            javaClasses.forEach(jc -> jc.getCU().getPrimaryType().ifPresent(type -> classNameMap.put(jc.getTypeName(type), jc)));
         } catch (IOException io) {
             System.out.println("IOException in parseModule()");
         }

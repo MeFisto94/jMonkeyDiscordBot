@@ -53,7 +53,7 @@ public class JavadocCommand extends AbstractLookupCommand {
             MethodInformation mi = new MethodInformation(m, i);
             EmbedBuilder builder = new EmbedBuilder();
 
-            builder.setFooter(jc.getPackage() + "." + jc.getTypeName() + " in module " + jc.getParent().getName(), null);
+            builder.setFooter(jc.getPackage() + "." + jc.getTypeNameOrThrow() + " in module " + jc.getParent().getName(), null);
             builder.setAuthor(mi.extractSignature(), mi.getJavadocLink());
             builder.setTitle("Branch: master", mi.getGithubLink());
             String javadoc = mi.extractJavaDoc();
@@ -90,7 +90,7 @@ public class JavadocCommand extends AbstractLookupCommand {
             FieldInformation fi = new FieldInformation(f, i);
             EmbedBuilder builder = new EmbedBuilder();
 
-            builder.setFooter(jc.getPackage() + "." + jc.getTypeName() + " in module " + jc.getParent().getName(), null);
+            builder.setFooter(jc.getPackage() + "." + jc.getTypeNameOrThrow() + " in module " + jc.getParent().getName(), null);
             builder.setAuthor(fi.extractSignature(), fi.getJavadocLink());
             builder.setTitle("Branch: master", fi.getGithubLink());
             String javadoc = fi.extractJavaDoc();

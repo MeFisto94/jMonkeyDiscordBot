@@ -13,8 +13,8 @@ import java.util.stream.Collectors;
  *
  */
 public class FieldInformation {
-    FieldDeclaration decl;
-    Field field;
+    private final FieldDeclaration decl;
+    private final Field field;
 
     public FieldInformation(Field field, FieldDeclaration decl) {
         this.field = field;
@@ -95,7 +95,10 @@ public class FieldInformation {
 
         // @TODO: For overloads we have to care about the parameters, but currently we don't even know Method/JavaClass
         // Example: https://javadoc.jmonkeyengine.org/com/jme3/math/Vector3f.html#addLocal-float-float-float
-        String packagePath = field.getParent().getPackage().replace(".", "/") + "/" + field.getParent().getTypeName();
+        var clazz = field.getParent().getCU();
+        var primaryType = clazz.getPrimaryType().orElseThrow();
+
+        String packagePath = field.getParent().getPackage().replace(".", "/") + "/" + field.getParent().getTypeName(primaryType);
         return String.format("https://javadoc.jmonkeyengine.org/%s.html", packagePath);
     }
 }

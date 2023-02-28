@@ -93,7 +93,7 @@ public class MethodInformation {
 
         // @TODO: For overloads we have to care about the parameters, but currently we don't even know Method/JavaClass
         // Example: https://javadoc.jmonkeyengine.org/com/jme3/math/Vector3f.html#addLocal-float-float-float
-        String packagePath = method.getParent().getPackage().replace(".", "/") + "/" + method.getParent().getTypeName();
+        String packagePath = method.getParent().getPackage().replace(".", "/") + "/" + method.getParent().getTypeNameOrThrow();
         return String.format("https://javadoc.jmonkeyengine.org/%s.html", packagePath);
     }
 }
