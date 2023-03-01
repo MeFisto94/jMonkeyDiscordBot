@@ -4,6 +4,8 @@ import com.github.MeFisto94.jMonkeyDiscordBot.*;
 import com.jagrosh.jdautilities.command.CommandEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 
+import java.util.stream.Stream;
+
 public class JavadocCommand extends AbstractLookupCommand {
 
     public JavadocCommand(Main main) {
@@ -35,13 +37,16 @@ public class JavadocCommand extends AbstractLookupCommand {
         if (m.getMethodCount() > 1) {
             event.reply("Found " + m.getMethodCount() + " overloads of this method: ");
         }
-        for (int i = 0; i < m.getMethodCount(); i++) {
-            MethodInformation mi = new MethodInformation(m, i);
+
+        var constructors = m.getConstructorDeclarations().stream().map(cd -> new MethodInformation(m, cd));
+        var methods = m.getMethodDeclarations().stream().map(md -> new MethodInformation(m, md));
+
+        Stream.concat(constructors, methods).forEach(mi -> {
             event.reply("#####################################");
             event.reply(mi.extractSignature() + "\n" + mi.extractJavaDoc()
                     + "\n" + mi.getJavadocLink());
             event.reply("#####################################");
-        }
+        });
     }
 
     protected void presentEmbed(CommandEvent event, JavaClass jc, Method m) {
@@ -49,8 +54,10 @@ public class JavadocCommand extends AbstractLookupCommand {
             event.reply("Found " + m.getMethodCount() + " overloads of this method:");
         }
 
-        for (int i = 0; i < m.getMethodCount(); i++) {
-            MethodInformation mi = new MethodInformation(m, i);
+        var constructors = m.getConstructorDeclarations().stream().map(cd -> new MethodInformation(m, cd));
+        var methods = m.getMethodDeclarations().stream().map(md -> new MethodInformation(m, md));
+
+        Stream.concat(constructors, methods).forEach(mi -> {
             EmbedBuilder builder = new EmbedBuilder();
 
             builder.setFooter(jc.getPackage() + "." + jc.getTypeNameOrThrow() + " in module " + jc.getParent().getName(), null);
@@ -65,7 +72,7 @@ public class JavadocCommand extends AbstractLookupCommand {
             }
 
             event.reply(builder.build());
-        }
+        });
     }
 
     protected void presentText(CommandEvent event, JavaClass jc, Field f) {

@@ -139,10 +139,16 @@ public class JavaClass extends AbstractProcessableFile {
     protected void parseMethods(TypeDeclaration<?> type) {
         // @TODO: There are caveats here: What about inner classes? These are other types than the Primary Type
         // @TODO: Would be a visitor (think SceneGraphVisitor) be an appropriate solution?
+
         type.getMembers().stream()
                 .filter(BodyDeclaration::isMethodDeclaration)
-                .map(b -> (MethodDeclaration)b)
+                .map(BodyDeclaration::asMethodDeclaration)
                 .forEach(this::addMethod);
+
+        type.getMembers().stream()
+                .filter(BodyDeclaration::isConstructorDeclaration)
+                .map(BodyDeclaration::asConstructorDeclaration)
+                .forEach(this::addConstructor);
     }
 
     protected void addMethod(MethodDeclaration m) {
@@ -150,6 +156,15 @@ public class JavaClass extends AbstractProcessableFile {
             methodMap.get(m.getNameAsString()).addDeclaration(m);
         } else {
             methodMap.put(m.getNameAsString(), new Method(this, m));
+        }
+    }
+
+    protected void addConstructor(ConstructorDeclaration declaration) {
+        var name = declaration.getNameAsString();
+        if (methodMap.containsKey(name)) {
+            methodMap.get(name).addDeclaration(declaration);
+        } else {
+            methodMap.put(name, new Method(this, declaration));
         }
     }
 

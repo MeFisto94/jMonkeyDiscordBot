@@ -1,7 +1,10 @@
 package com.github.MeFisto94.jMonkeyDiscordBot;
 
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.javadoc.Javadoc;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -11,16 +14,18 @@ import java.util.stream.Collectors;
  *
  */
 public class MethodInformation {
-    MethodDeclaration decl;
-    Method method;
+    private final Method method;
+    private @Nullable MethodDeclaration methodDeclaration;
+    private @Nullable ConstructorDeclaration constructorDeclaration;
 
-    public MethodInformation(Method method, MethodDeclaration decl) {
+    public MethodInformation(Method method, @Nonnull MethodDeclaration methodDeclaration) {
         this.method = method;
-        this.decl = decl;
+        this.methodDeclaration = methodDeclaration;
     }
 
-    public MethodInformation(Method method, int idx) {
-        this(method, method.getDeclaration(idx));
+    public MethodInformation(Method method, @Nonnull ConstructorDeclaration constructorDeclaration) {
+        this.method = method;
+        this.constructorDeclaration = constructorDeclaration;
     }
 
     public String toString() {
@@ -40,18 +45,36 @@ public class MethodInformation {
     }
 
     public String extractSignature() {
-        return decl.getDeclarationAsString(true, true, true);
+        if (methodDeclaration != null) {
+            return methodDeclaration.getDeclarationAsString(true, true, true);
+        } else {
+            return constructorDeclaration.getDeclarationAsString(true, true, true);
+        }
     }
 
     public @Nullable String extractJavaDoc() {
-        if (decl.hasJavaDocComment()) {
-            if (Main.javadocAsCode) {
-                return decl.getJavadocComment().get().toString();
+        if (methodDeclaration != null) {
+            if (methodDeclaration.hasJavaDocComment()) {
+                if (Main.javadocAsCode) {
+                    return methodDeclaration.getJavadocComment().map(Object::toString).orElse(null);
+                } else {
+                    return methodDeclaration.getJavadoc().map(Javadoc::toText).orElse(null);
+                }
             } else {
-                return decl.getJavadoc().get().toText();
+                return null;
+            }
+        } else if (constructorDeclaration != null) {
+            if (constructorDeclaration.hasJavaDocComment()) {
+                if (Main.javadocAsCode) {
+                    return constructorDeclaration.getJavadocComment().map(Object::toString).orElse(null);
+                } else {
+                    return constructorDeclaration.getJavadocComment().map(Object::toString).orElse(null);
+                }
+            } else {
+                return null;
             }
         } else {
-            return null;
+            throw new IllegalStateException();
         }
     }
 
@@ -61,7 +84,11 @@ public class MethodInformation {
      */
     public String getContent() {
         // @TODO: Fails for Interfaces
-        return decl.getBody().get().toString();
+        if (methodDeclaration != null) {
+            return methodDeclaration.getBody().get().toString();
+        } else {
+            return constructorDeclaration.getBody().toString();
+        }
         //return decl.toString();
     }
 
