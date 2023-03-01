@@ -13,19 +13,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GitRepo {
-    private RepositorySynchronizer sync;
-    private List<String> branches;
-    private ConcurrentHashMap<String, GitBranch> branchList;
-    private File folder;
-    private String name;
+    private final String name;
+    private final List<String> branches;
+    private final RepositorySynchronizer sync;
+    private final File folder;
+    private final ConcurrentHashMap<String, GitBranch> branchList;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitRepo.class);
 
     public GitRepo(String repoName, String URI, Stream<String> branches) {
         this.name = repoName;
+        this.branches = branches.collect(Collectors.toList());
         sync = new RepositorySynchronizer(repoName, URI);
         folder = sync.getFolder();
-        this.branches = branches.collect(Collectors.toList());
         branchList = new ConcurrentHashMap<>();
     }
 
@@ -42,7 +42,6 @@ public class GitRepo {
         if (hasBranch(branchName) && needsToParseBranch(branchName)) {
             Optional<GitLock> lock;
             do {
-                System.out.println(branchName);
                 lock = sync.checkoutAndLock(boc);
                 if (lock.isEmpty()) {
                     try {
@@ -79,13 +78,11 @@ public class GitRepo {
             ee.printStackTrace();
         }
 
-        sync.checkNeedsUpdate();
+        sync.checkNeedsUpdate(branches);
 
         if (sync.needsUpdate) {
             try {
-                if (sync.needsCloning()) {
-                    sync.pullRepository().get();
-                }
+                sync.pullRepository().get();
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             } catch (ExecutionException ee) {

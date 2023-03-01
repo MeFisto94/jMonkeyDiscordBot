@@ -9,20 +9,22 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class RepositorySynchronizer {
-    File folder;
-    Git git;
-    Repository repository;
-    GitLock lock;
+    private final File folder;
+    private final GitLock lock;
     boolean needsCloning = false;
     boolean needsUpdate = false;
-    String name;
-    String URI;
+    private final String name;
+    private final String URI;
+    Git git;
+    Repository repository;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RepositorySynchronizer.class);
+    private static final String REF_SPEC = "refs/remotes/origin/";
 
     public RepositorySynchronizer(String name, String URI) throws IllegalStateException {
         this.name = name;
@@ -81,34 +83,40 @@ public class RepositorySynchronizer {
         });
     }
 
-    public void checkNeedsUpdate() {
+    public CompletableFuture<Void> fetchRepository() {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                git.fetch().call();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void checkNeedsUpdate(Collection<String> desiredBranches) {
         try {
-            repository.getRefDatabase().getRefs().forEach(ref -> {
-                try {
-                    repository.updateRef(ref.getName());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            fetchRepository().get();
 
             needsUpdate = repository.getRefDatabase().getRefs().stream().anyMatch(ref -> {
                 try {
-
                     if (ref.getName().startsWith("refs/tags/")) {
                         return false; // Ignore tags as they need to be on a branch anyway.
                     }
-                    // @TODO FIXME: BranchTrackingStatus.of() fails for most stuff, because it cannot find the trackingBranch...
-                    // but it works for master and only there...
-                    String name = ref.getName();//.substring("refs/remotes/origin".length() + 1);
-                    BranchTrackingStatus tracking = BranchTrackingStatus.of(repository, name);
+
+                    var name = ref.getName();
+                    var branchName = name.startsWith(REF_SPEC) ? name.substring(REF_SPEC.length()) : name;
+
+                    if (!desiredBranches.contains(branchName)) {
+                        return false; // Ignore branch
+                    }
+
+                    var tracking = BranchTrackingStatus.of(repository, name);
 
                     if (tracking == null) {
                         // They may just not have a local branch yet... Only happens for branches not part anyway.
-                        LOGGER.warn("Error in checkNeedsUpdate() for " + name);
+                        LOGGER.warn("Error in checkNeedsUpdate() for {} ({})", branchName, name);
                         return false;
                     } else {
-                        /*System.out.println(tracking.getAheadCount());
-                        System.out.println(tracking.getBehindCount());*/
                         return tracking.getAheadCount() > 0;
                     }
                 } catch (Exception e) {
