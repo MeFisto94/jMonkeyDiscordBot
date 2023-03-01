@@ -1,0 +1,7 @@
+# Keep this in sync with .gitignore
+build/
+out/
+repositories/
+token.txt
+.gradle/
+.idea/
